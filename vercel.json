@@ -1,0 +1,6 @@
+{
+  "rewrites": [
+    { "source": "/ping", "destination": "/api/ping" },
+    { "source": "/count", "destination": "/api/count" }
+  ]
+}
