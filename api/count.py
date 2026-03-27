@@ -7,11 +7,17 @@ r = redis.from_url(os.environ["REDIS_URL"])
 
 class handler(BaseHTTPRequestHandler):
     def do_GET(self):
-        # Count all keys matching session:* — expired ones are auto-removed by Redis
         keys = r.keys("session:*")
-        count = len(keys)
+        players = []
+        for key in keys:
+            val = r.get(key)
+            if val:
+                try:
+                    players.append(json.loads(val))
+                except:
+                    pass
 
-        body = json.dumps({"count": count})
+        body = json.dumps({ "count": len(players), "players": players })
         self.send_response(200)
         self.send_header("Content-Type", "application/json")
         self.send_header("Access-Control-Allow-Origin", "*")
@@ -20,4 +26,3 @@ class handler(BaseHTTPRequestHandler):
 
     def log_message(self, format, *args):
         pass
-
