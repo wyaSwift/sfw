@@ -1,12 +1,29 @@
-import time
-from ping import USERS  # if memory persisted (won't survive serverless cold starts)
+import json
+import os
+from http.server import BaseHTTPRequestHandler
+import redis
 
-TIMEOUT = 30
+r = redis.from_url(os.environ["REDIS_URL"])
 
-def handler(request):
-    now = time.time()
-    # remove inactive
-    to_delete = [uid for uid, ts in USERS.items() if now - ts > TIMEOUT]
-    for uid in to_delete:
-        USERS.pop(uid)
-    return {"status": 200, "body": json.dumps({"count": len(USERS)})}
+class handler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        # Count all keys matching session:* — expired ones are auto-removed by Redis
+        keys = r.keys("session:*")
+        count = len(keys)
+
+        body = json.dumps({"count": count})
+        self.send_response(200)
+        self.send_header("Content-Type", "application/json")
+        self.send_header("Access-Control-Allow-Origin", "*")
+        self.end_headers()
+        self.wfile.write(body.encode())
+
+    def log_message(self, format, *args):
+        pass
+```
+
+---
+
+**`requirements.txt`**
+```
+redis
