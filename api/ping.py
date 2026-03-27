@@ -1,20 +1,17 @@
 import json
-import time
 import os
 from http.server import BaseHTTPRequestHandler
 import redis
 
 r = redis.from_url(os.environ["REDIS_URL"])
-TIMEOUT = 30  # seconds
+TIMEOUT = 30
 
 class handler(BaseHTTPRequestHandler):
     def do_POST(self):
         length = int(self.headers.get("Content-Length", 0))
-        body = self.rfile.read(length)
-
         try:
-            data = json.loads(body)
-        except json.JSONDecodeError:
+            data = json.loads(self.rfile.read(length))
+        except:
             self._respond(400, "invalid json")
             return
 
@@ -23,9 +20,13 @@ class handler(BaseHTTPRequestHandler):
             self._respond(400, "missing id")
             return
 
-        # Store player_id with current timestamp, auto-expire after TIMEOUT
-        r.setex(f"session:{player_id}", TIMEOUT, 1)
-
+        # Store id, username, and job id together
+        payload = json.dumps({
+            "id": player_id,
+            "username": data.get("username", "Unknown"),
+            "jobId": data.get("jobId", "")
+        })
+        r.setex(f"session:{player_id}", TIMEOUT, payload)
         self._respond(200, "ok")
 
     def _respond(self, status, text):
@@ -36,4 +37,4 @@ class handler(BaseHTTPRequestHandler):
         self.wfile.write(text.encode())
 
     def log_message(self, format, *args):
-        pass  # silence default logging
+        pass
