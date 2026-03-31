@@ -5,27 +5,19 @@ import redis
 
 r = redis.from_url(os.environ["REDIS_URL"])
 
-
 class handler(BaseHTTPRequestHandler):
 
     def do_OPTIONS(self):
         self._cors(200)
 
     def do_GET(self):
-        keys = r.keys("session:*")
-        players = []
-        for key in keys:
-            val = r.get(key)
-            if val:
-                try:
-                    players.append(json.loads(val))
-                except Exception:
-                    pass
+        try:
+            keys = r.keys("session:*")
+            count = len(keys)
 
-        self._respond(200, {
-            "count":   len(players),
-            "players": players,
-        })
+            self._respond(200, {"count": count})
+        except Exception as e:
+            self._respond(500, {"error": str(e)})
 
     def _respond(self, status, obj):
         body = json.dumps(obj).encode()
